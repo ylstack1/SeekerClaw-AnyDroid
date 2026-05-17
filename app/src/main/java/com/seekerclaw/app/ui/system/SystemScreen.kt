@@ -291,6 +291,57 @@ fun SystemScreen(onBack: () -> Unit) {
             }
         }
 
+        if (com.seekerclaw.app.util.MiuiUtils.isMiui()) {
+            Spacer(modifier = Modifier.height(24.dp))
+            SectionLabel("Device Optimization")
+            Spacer(modifier = Modifier.height(8.dp))
+            CardSurface {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { com.seekerclaw.app.util.MiuiUtils.openAutoStartSettings(context) }
+                        .padding(vertical = 12.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Auto-start",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 13.sp,
+                        color = SeekerClawColors.TextPrimary
+                    )
+                    Text(
+                        text = "Configure \u2192",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp,
+                        color = SeekerClawColors.Accent
+                    )
+                }
+                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(SeekerClawColors.TextDim.copy(alpha = 0.15f)))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { com.seekerclaw.app.util.MiuiUtils.openBatteryOptimizationSettings(context) }
+                        .padding(vertical = 12.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Battery Optimization",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 13.sp,
+                        color = SeekerClawColors.TextPrimary
+                    )
+                    Text(
+                        text = "Configure \u2192",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp,
+                        color = SeekerClawColors.Accent
+                    )
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         // ==================== CONNECTION ====================

@@ -88,7 +88,15 @@ class OAuthKeepAliveService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 
-        startForeground(NOTIFICATION_ID, notification)
+        if (android.os.Build.VERSION.SDK_INT >= 34) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
         Log.i(TAG, "Keep-alive service started (foreground)")
 
         // Clear any existing auto-stop from a prior start cycle, then

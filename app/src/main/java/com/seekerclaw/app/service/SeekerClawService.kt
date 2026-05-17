@@ -261,7 +261,15 @@ class SeekerClawService : Service() {
         LogCollector.init(applicationContext)
 
         val notification = createNotification("SeekerClaw is running")
-        startForeground(NOTIFICATION_ID, notification)
+        if (android.os.Build.VERSION.SDK_INT >= 34) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
 
         // Clear any lingering setup-required notification from a previous version.
         getSystemService(android.app.NotificationManager::class.java)
