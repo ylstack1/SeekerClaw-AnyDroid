@@ -237,16 +237,16 @@ const handlers = {
                 return { error: `Marketplace search failed: HTTP ${res.status}` };
             }
             
-            // Assume API returns an array of skill objects
-            const skills = Array.isArray(res.data) ? res.data : [];
+            const data = res.data || {};
+            const skills = Array.isArray(data.items) ? data.items : [];
             return {
                 count: skills.length,
                 skills: skills.map(s => ({
-                    id: s.id,
-                    name: s.name,
-                    description: s.description,
+                    id: s.slug,
+                    name: s.displayName,
+                    description: s.summary,
                     author: s.author,
-                    version: s.version,
+                    version: s.latestVersion?.version || "1.0.0",
                     downloadUrl: s.downloadUrl,
                     emoji: s.emoji
                 }))
