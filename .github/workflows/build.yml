@@ -23,6 +23,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Run Node.js smoke test
+        run: node tests/nodejs-project/smoke.js
+
       - name: Build debug APKs
         run: chmod +x gradlew && ./gradlew assembleDappStoreDebug assembleGooglePlayDebug
 

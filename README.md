@@ -2,7 +2,7 @@
   <img src="design/banner.png" alt="SeekerClaw" width="100%">
   <br><br>
   <p>
-    <img src="https://img.shields.io/badge/Android-14+-3DDC84?logo=android&logoColor=white" alt="Android 14+">
+    <img src="https://img.shields.io/badge/Android-10+-3DDC84?logo=android&logoColor=white" alt="Android 10+">
     <img src="https://img.shields.io/badge/Kotlin-2.0-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin">
     <img src="https://img.shields.io/badge/Claude-Powered-cc785c?logo=anthropic&logoColor=white" alt="Claude">
     <img src="https://img.shields.io/badge/OpenAI-Powered-412991?logo=openai&logoColor=white" alt="OpenAI">
@@ -23,7 +23,7 @@
 
 ---
 
-SeekerClaw embeds a Node.js AI agent inside an Android app, running 24/7 as a foreground service. You interact through Telegram or Discord — ask questions, control your phone, trade crypto, schedule tasks. **60+ built-in tools (plus MCP remote tools), 35+ partner skills, Solana wallet, multi-provider AI (Claude + OpenAI + OpenRouter + any OpenAI-compatible gateway), extended thinking, graceful Stop**, all running locally on your device. Built for the Solana Seeker, runs on any Android 14+ phone.
+SeekerClaw embeds a Node.js AI agent inside an Android app, running 24/7 as a foreground service. You interact through Telegram or Discord — ask questions, control your phone, trade crypto, schedule tasks. **60+ built-in tools (plus MCP remote tools), 35+ partner skills, Solana wallet, multi-provider AI (Claude + OpenAI + OpenRouter + any OpenAI-compatible gateway), extended thinking, graceful Stop**, all running locally on your device. Built for the Solana Seeker, runs on any Android 10+ phone.
 
 <div align="center">
   <img src="design/screenshots/01-first-launch.png" width="130">

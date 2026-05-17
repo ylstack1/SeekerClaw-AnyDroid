@@ -67,7 +67,7 @@ See [CLAUDE.md](CLAUDE.md) for the full architecture guide, including:
 1. **Branch from `main`** — use descriptive branch names (e.g., `feature/add-export`, `fix/watchdog-restart`)
 2. **Keep PRs focused** — one feature or fix per PR
 3. **Write descriptive commits** — explain the "why", not just the "what"
-4. **Test on device** — verify your changes work on Android 14+ (ideally on a Solana Seeker)
+4. **Test on device** — verify your changes work on Android 10+ (ideally on a Solana Seeker)
 5. **Open PR** — fill out the PR template, link related issues
 6. **CI must pass** — the build workflow runs automatically on every PR
 
