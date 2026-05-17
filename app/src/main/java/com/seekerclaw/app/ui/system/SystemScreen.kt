@@ -291,7 +291,7 @@ fun SystemScreen(onBack: () -> Unit) {
             }
         }
 
-        if (com.seekerclaw.app.util.MiuiUtils.isMiui()) {
+        if (com.seekerclaw.app.util.XiaomiUtils.isXiaomi()) {
             Spacer(modifier = Modifier.height(24.dp))
             SectionLabel("Device Optimization")
             Spacer(modifier = Modifier.height(8.dp))
@@ -299,7 +299,7 @@ fun SystemScreen(onBack: () -> Unit) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { com.seekerclaw.app.util.MiuiUtils.openAutoStartSettings(context) }
+                        .clickable { com.seekerclaw.app.util.XiaomiUtils.openAutoStartSettings(context) }
                         .padding(vertical = 12.dp, horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -321,13 +321,35 @@ fun SystemScreen(onBack: () -> Unit) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { com.seekerclaw.app.util.MiuiUtils.openBatteryOptimizationSettings(context) }
+                        .clickable { com.seekerclaw.app.util.XiaomiUtils.openBatteryOptimizationSettings(context) }
                         .padding(vertical = 12.dp, horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
                         text = "Battery Optimization",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 13.sp,
+                        color = SeekerClawColors.TextPrimary
+                    )
+                    Text(
+                        text = "Configure \u2192",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp,
+                        color = SeekerClawColors.Accent
+                    )
+                }
+                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(SeekerClawColors.TextDim.copy(alpha = 0.15f)))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { com.seekerclaw.app.util.XiaomiUtils.openStartInBackgroundSettings(context) }
+                        .padding(vertical = 12.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Start in Background",
                         fontFamily = FontFamily.Monospace,
                         fontSize = 13.sp,
                         color = SeekerClawColors.TextPrimary

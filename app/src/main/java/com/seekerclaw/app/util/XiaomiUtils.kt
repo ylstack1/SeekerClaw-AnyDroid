@@ -6,12 +6,13 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 
-object MiuiUtils {
+object XiaomiUtils {
     /**
-     * Detects if the current device is running MIUI.
+     * Detects if the current device is running MIUI/HyperOS.
      */
-    fun isMiui(): Boolean {
-        return !getSystemProperty("ro.miui.ui.version.name").isNullOrBlank()
+    fun isXiaomi(): Boolean {
+        return !getSystemProperty("ro.miui.ui.version.name").isNullOrBlank() ||
+               Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)
     }
 
     /**
@@ -29,7 +30,6 @@ object MiuiUtils {
                 intent.addCategory(Intent.CATEGORY_DEFAULT)
                 context.startActivity(intent)
             } catch (e2: Exception) {
-                // Fallback to app info
                 openAppInfo(context)
             }
         }
@@ -46,13 +46,27 @@ object MiuiUtils {
             intent.putExtra("package_label", context.applicationInfo.loadLabel(context.packageManager).toString())
             context.startActivity(intent)
         } catch (e: Exception) {
-            // Fallback to generic battery optimization
             try {
                 val intent = Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
                 context.startActivity(intent)
             } catch (e2: Exception) {
                 openAppInfo(context)
             }
+        }
+    }
+
+    /**
+     * Opens the MIUI "Start in background" permission screen.
+     * Required for some devices to allow the agent to start on boot or resume properly.
+     */
+    fun openStartInBackgroundSettings(context: Context) {
+        try {
+            val intent = Intent("miui.intent.action.APP_PERM_EDITOR")
+            intent.setClassName("com.miui.securitycenter", "com.miui.permcenter.permissions.PermissionsEditorActivity")
+            intent.putExtra("extra_pkgname", context.packageName)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            openAppInfo(context)
         }
     }
 
