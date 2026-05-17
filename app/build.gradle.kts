@@ -86,22 +86,37 @@ android {
     }
 
     signingConfigs {
+        val communityKeystore = file("community-release.jks")
+        val hasCommunity = communityKeystore.exists()
+
         create("dappStore") {
             val ksPath = signingProp("SEEKERCLAW_KEYSTORE_PATH", "SEEKERCLAW_KEYSTORE_PATH")
-            if (ksPath != null) {
-                storeFile = file(ksPath)
+            val ksFile = ksPath?.let { file(it) }
+            if (ksFile?.exists() == true) {
+                storeFile = ksFile
                 storePassword = signingProp("SEEKERCLAW_STORE_PASSWORD", "SEEKERCLAW_STORE_PASSWORD")
                 keyAlias = signingProp("SEEKERCLAW_KEY_ALIAS", "SEEKERCLAW_KEY_ALIAS")
                 keyPassword = signingProp("SEEKERCLAW_KEY_PASSWORD", "SEEKERCLAW_KEY_PASSWORD")
+            } else if (hasCommunity) {
+                storeFile = communityKeystore
+                storePassword = "community"
+                keyAlias = "community"
+                keyPassword = "community"
             }
         }
         create("googlePlay") {
             val ksPath = signingProp("PLAY_KEYSTORE_PATH", "PLAY_KEYSTORE_PATH")
-            if (ksPath != null) {
-                storeFile = file(ksPath)
+            val ksFile = ksPath?.let { file(it) }
+            if (ksFile?.exists() == true) {
+                storeFile = ksFile
                 storePassword = signingProp("PLAY_STORE_PASSWORD", "PLAY_STORE_PASSWORD")
                 keyAlias = signingProp("PLAY_KEY_ALIAS", "PLAY_KEY_ALIAS")
                 keyPassword = signingProp("PLAY_KEY_PASSWORD", "PLAY_KEY_PASSWORD")
+            } else if (hasCommunity) {
+                storeFile = communityKeystore
+                storePassword = "community"
+                keyAlias = "community"
+                keyPassword = "community"
             }
         }
     }
@@ -111,12 +126,14 @@ android {
     productFlavors {
         create("dappStore") {
             dimension = "distribution"
+            applicationIdSuffix = ".dapp"
             buildConfigField("String", "DISTRIBUTION", "\"dappStore\"")
             buildConfigField("String", "STORE_NAME", "\"Solana dApp Store\"")
             signingConfig = signingConfigs.getByName("dappStore")
         }
         create("googlePlay") {
             dimension = "distribution"
+            applicationIdSuffix = ".play"
             buildConfigField("String", "DISTRIBUTION", "\"googlePlay\"")
             buildConfigField("String", "STORE_NAME", "\"Google Play\"")
             signingConfig = signingConfigs.getByName("googlePlay")

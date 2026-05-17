@@ -5,11 +5,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- **Flavor-specific Application IDs** — Added `applicationIdSuffix` to `dappStore` (`.dapp`) and `googlePlay` (`.play`) flavors. This resolves the 'Package Conflict' issue, allowing both versions to be installed on the same device simultaneously.
+- **Community Signing Fallback** — Implemented a "no-secrets-required" signing flow. If private keystore secrets are missing in CI or local builds, the build now automatically falls back to a stable community keystore (`app/community-release.jks`). This ensures that all builds (including forks and community PRs) produce signed, installable APKs.
+
 ### Changed
-- **Unified CI/CD Release Pipeline** — Consolidated build and release automation. Every push to `main` now updates a "Latest" Pre-release on GitHub with signed APKs.
-- **Consistent Signing** — All CI builds (tags and main branch) now use stable signing keys from secrets, enabling seamless upgrades from "Latest" builds to tagged releases.
+- **Unified CI/CD Release Pipeline** — Consolidated build and release automation. Every push to `main` now updates a "Latest" rolling Pre-release on GitHub with signed APKs.
+- **Consistent Signing** — All CI builds (tags and main branch) now produce signed artifacts. Official builds use private secrets, while community builds fall back to the public community key.
 - **Automated Versioning** — `versionName` now follows a consistent pattern: `{base_version}-main-{sha}` for main branch builds and the tag name for tagged releases.
-- **Release Asset Publishing** — APKs and AABs are now automatically attached as GitHub Release assets for direct download.
+- **Release Asset Publishing** — APKs and AABs are now automatically attached as GitHub Release assets for every push to `main` and every version tag.
 
 ## [1.11.0] - 2026-05-17
 

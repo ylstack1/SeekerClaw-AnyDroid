@@ -49,6 +49,8 @@ app/libnode/
 # Signing keys — NEVER commit these
 *.jks
 *.keystore
+# EXCEPT the public community keystore used for no-secrets-required builds
+!app/community-release.jks
 *.pem
 *.p12
 *.p8
