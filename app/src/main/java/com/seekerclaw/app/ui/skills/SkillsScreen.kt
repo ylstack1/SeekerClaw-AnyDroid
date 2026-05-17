@@ -60,7 +60,10 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 @Composable
-fun SkillsScreen(navController: NavHostController) {
+fun SkillsScreen(
+    navController: NavHostController,
+    onNavigateToMarketplace: () -> Unit = {},
+) {
     val context = LocalContext.current
     val workspaceDir = remember { File(context.filesDir, "workspace") }
     var selectedSkill by remember { mutableStateOf<SkillInfo?>(null) }
@@ -104,6 +107,7 @@ fun SkillsScreen(navController: NavHostController) {
             workspaceDir = workspaceDir,
             navController = navController,
             onSkillClick = { selectedSkill = it },
+            onNavigateToMarketplace = onNavigateToMarketplace,
         )
     }
 }
@@ -113,6 +117,7 @@ private fun SkillsListContent(
     workspaceDir: File,
     navController: NavHostController,
     onSkillClick: (SkillInfo) -> Unit,
+    onNavigateToMarketplace: () -> Unit,
 ) {
     val context = LocalContext.current
     val envKeys by EnvVarRegistry.keys.collectAsState()
@@ -238,7 +243,7 @@ private fun SkillsListContent(
             }
 
             item {
-                MarketplaceTeaserCard(shape = shape)
+                MarketplaceTeaserCard(shape = shape, onClick = onNavigateToMarketplace)
             }
 
             if (filtered.isEmpty()) {
@@ -371,12 +376,13 @@ private fun SearchField(
 }
 
 @Composable
-private fun MarketplaceTeaserCard(shape: RoundedCornerShape) {
+private fun MarketplaceTeaserCard(shape: RoundedCornerShape, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(SeekerClawColors.Surface, shape)
             .cornerGlowBorder()
+            .clickable(onClickLabel = "Open Marketplace", onClick = onClick)
             .padding(20.dp),
     ) {
         Column {

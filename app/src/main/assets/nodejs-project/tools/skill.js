@@ -56,6 +56,17 @@ const tools = [
             }
         }
     },
+    {
+        name: 'skill_marketplace_search',
+        description: 'Search ClawHub.ai for community skills. Returns a list of skills with their name, description, author, version, and download URL. Use this to help the user find and install new capabilities.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                query: { type: 'string', description: 'Search term (e.g., "weather", "crypto", "trading")' }
+            },
+            required: ['query']
+        }
+    },
 ];
 
 const handlers = {
@@ -214,6 +225,35 @@ const handlers = {
         const versionStr = skill.version ? ` v${skill.version}` : '';
         const triggersStr = skill.triggers.length > 0 ? skill.triggers.join(', ') : '(semantic — uses description matching)';
         return { result: `Skill "${skill.name}"${versionStr} ${action} — triggers: ${triggersStr}` };
+    },
+
+    async skill_marketplace_search(input) {
+        const { query } = input;
+        const url = `https://clawhub.ai/api/v1/skills?q=${encodeURIComponent(query)}`;
+        
+        try {
+            const res = await webFetch(url, { timeout: 15000 });
+            if (res.status !== 200) {
+                return { error: `Marketplace search failed: HTTP ${res.status}` };
+            }
+            
+            // Assume API returns an array of skill objects
+            const skills = Array.isArray(res.data) ? res.data : [];
+            return {
+                count: skills.length,
+                skills: skills.map(s => ({
+                    id: s.id,
+                    name: s.name,
+                    description: s.description,
+                    author: s.author,
+                    version: s.version,
+                    downloadUrl: s.downloadUrl,
+                    emoji: s.emoji
+                }))
+            };
+        } catch (e) {
+            return { error: `Marketplace search failed: ${e.message}` };
+        }
     },
 };
 

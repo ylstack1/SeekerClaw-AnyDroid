@@ -51,6 +51,7 @@ import kotlinx.serialization.Serializable
 @Serializable object SkillsRoute
 @Serializable object SettingsRoute
 @Serializable object SystemRoute
+@Serializable object MarketplaceRoute
 @Serializable object ProviderConfigRoute
 @Serializable object ChannelConfigRoute
 @Serializable object TelegramConfigRoute
@@ -221,7 +222,17 @@ fun SeekerClawNavHost() {
                 LogsScreen()
             }
             composable<SkillsRoute> {
-                SkillsScreen(navController = navController)
+                SkillsScreen(
+                    navController = navController,
+                    onNavigateToMarketplace = {
+                        navController.navigate(MarketplaceRoute)
+                    }
+                )
+            }
+            composable<MarketplaceRoute> {
+                com.seekerclaw.app.ui.skills.MarketplaceScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable<SettingsRoute> {
                 SettingsScreen(
