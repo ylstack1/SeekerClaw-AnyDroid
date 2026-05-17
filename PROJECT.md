@@ -12,7 +12,7 @@ SeekerClaw embeds a full Node.js runtime inside an Android app, running an OpenC
 
 ## What It Is
 
-SeekerClaw is an Android app built for the Solana Seeker phone (also works on any Android 14+ device with 4GB+ RAM). It packages a Node.js 18 runtime via nodejs-mobile and runs an AI agent gateway derived from OpenClaw. The agent connects to Anthropic's Claude API for intelligence and to Telegram for user communication.
+SeekerClaw is an Android app built for the Solana Seeker phone (also works on any Android 10+ device with 4GB+ RAM). It packages a Node.js 18 runtime via nodejs-mobile and runs an AI agent gateway derived from OpenClaw. The agent connects to Anthropic's Claude API for intelligence and to Telegram for user communication.
 
 **Who it's for:** Seeker phone owners who want an always-on AI assistant that can manage their crypto wallet, control their phone, search the web, and automate tasks — all from Telegram.
 
@@ -28,7 +28,7 @@ SeekerClaw is an Android app built for the Solana Seeker phone (also works on an
 |-----------|-----------|---------|
 | Language (Android) | Kotlin | — |
 | UI Framework | Jetpack Compose (Material 3) | — |
-| Min SDK | 34 (Android 14) | — |
+| Min SDK | 29 (Android 10) | — |
 | Node.js Runtime | nodejs-mobile (community fork) | Node 18 LTS |
 | AI Provider | Anthropic Claude API + OpenAI Responses API + OpenRouter Chat Completions + Custom (any OpenAI-compatible gateway) | Claude Opus 4.7 default; OpenAI + OpenRouter + Custom via adapters |
 | Messaging | Telegram Bot API (grammy) | — |

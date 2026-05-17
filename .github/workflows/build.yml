@@ -23,13 +23,35 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Run Node.js smoke test
+        run: node tests/nodejs-project/smoke.js
+
       - name: Build debug APKs
         run: chmod +x gradlew && ./gradlew assembleDappStoreDebug assembleGooglePlayDebug
 
+      - name: Rename debug APKs
+        run: |
+          REF_NAME=$(echo "${{ github.event.pull_request.head.ref || github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/_/g')
+          # DappStore
+          APK=$(find app/build/outputs/apk/dappStore/debug -name '*.apk' | head -1)
+          if [ -n "$APK" ]; then
+            cp "$APK" "SeekerClaw-${REF_NAME}-dappStore-debug.apk"
+          fi
+          # GooglePlay
+          APK=$(find app/build/outputs/apk/googlePlay/debug -name '*.apk' | head -1)
+          if [ -n "$APK" ]; then
+            cp "$APK" "SeekerClaw-${REF_NAME}-googlePlay-debug.apk"
+          fi
+
       - name: Upload debug APKs
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: seekerclaw-debug
-          path: app/build/outputs/apk/*/debug/*.apk
+          name: seekerclaw-debug-${{ github.event.pull_request.number || github.run_id }}
+          path: SeekerClaw-*-debug.apk
           retention-days: 14
+
+      - name: Add Job Summary
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Debug APKs built and uploaded:" >> $GITHUB_STEP_SUMMARY
+          ls SeekerClaw-*-debug.apk | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY || echo "No APKs found" >> $GITHUB_STEP_SUMMARY

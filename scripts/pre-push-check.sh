@@ -62,6 +62,7 @@ JDK_CANDIDATES=(
     # Linux
     "/usr/lib/jvm/java-21-openjdk-amd64"
     "/usr/lib/jvm/java-17-openjdk-amd64"
+    "/usr/lib/jvm/temurin-17-jdk-amd64"
 )
 
 # Resolve the java binary for a given JDK root — returns the first existing
@@ -185,6 +186,7 @@ fi
 if [ -z "${ANDROID_HOME:-}" ]; then
     # Standard install locations
     for cand in \
+        "/opt/android-sdk" \
         "/e/AndroidSDK" \
         "$HOME/AppData/Local/Android/Sdk" \
         "/c/Users/$USER/AppData/Local/Android/Sdk" \

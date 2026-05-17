@@ -22,7 +22,7 @@
 ### Supported Devices
 
 - **Primary:** Solana Seeker (Android 14, Snapdragon 6 Gen 1, 8GB RAM)
-- **Secondary:** Any Android 14+ with 4GB+ RAM
+- **Secondary:** Any Android 10+ with 4GB+ RAM
 - **Note:** OEM-modified ROMs (Xiaomi MIUI, Samsung OneUI) may aggressively kill background services — Seeker's stock Android avoids this.
 
 ### Development Phases
@@ -49,7 +49,7 @@
 - **Language:** Kotlin
 - **UI:** Jetpack Compose (Material 3, dark theme only)
 - **Theme:** `Theme.SeekerClaw`
-- **Min SDK:** 34 (Android 14)
+- **Min SDK:** 29 (Android 10)
 - **Node.js Runtime:** nodejs-mobile (https://github.com/nodejs-mobile/nodejs-mobile) — Node 18 LTS, ARM64
 - **QR Scanning:** CameraX + ZXing/ML Kit
 - **Encryption:** Android Keystore (AES-256-GCM, `userAuthenticationRequired = false`)
