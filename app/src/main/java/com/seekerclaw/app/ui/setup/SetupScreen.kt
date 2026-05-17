@@ -299,8 +299,10 @@ fun SetupScreen(onSetupComplete: () -> Unit) {
 
     var hasNotificationPermission by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
-                    PackageManager.PERMISSION_GRANTED
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                        PackageManager.PERMISSION_GRANTED
+            } else true
         )
     }
     var showNotificationDialog by remember { mutableStateOf(!hasNotificationPermission) }

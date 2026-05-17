@@ -4,13 +4,17 @@
 
     <!-- Core permissions -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"
+        tools:targetApi="34" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission
+        android:name="android.permission.POST_NOTIFICATIONS"
+        tools:targetApi="33" />
 
     <!-- Android Bridge permissions (Phase 4) -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -55,6 +59,7 @@
             android:name=".service.SeekerClawService"
             android:process=":node"
             android:foregroundServiceType="specialUse"
+            tools:targetApi="34"
             android:exported="false" />
 
         <!-- Temporary foreground service that keeps the process alive with
@@ -65,6 +70,7 @@
         <service
             android:name=".service.OAuthKeepAliveService"
             android:foregroundServiceType="shortService"
+            tools:targetApi="34"
             android:exported="false" />
 
         <activity

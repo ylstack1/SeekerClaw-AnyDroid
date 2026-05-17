@@ -36,7 +36,7 @@ android {
 
     defaultConfig {
         applicationId = "com.seekerclaw.app"
-        minSdk = 34
+        minSdk = 29
         targetSdk = 35
         versionCode = 19
         versionName = "1.10.0"
