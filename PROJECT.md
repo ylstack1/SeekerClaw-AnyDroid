@@ -178,7 +178,11 @@ SeekerClaw is an Android app built for the Solana Seeker phone (also works on an
 - **Skills tab** — Installed skills list with search, skill detail view with export button, marketplace teaser, skill images (Coil), "Added"/"Default" grouping, bulk export/import (ZIP + .md)
 - **System screen** — API usage stats, memory index status, Material Design polish with M3 spacing tokens
 - **Foreground service** — START_STICKY with wake lock, boot receiver, watchdog (30s health check), heartbeat end-to-end probe
-- **Open-source ready** — MIT license, CONTRIBUTING.md, issue/PR templates, GitHub Actions CI + release workflows, Firebase Analytics build-optional, product flavors (full w/ Firebase + FOSS without)
+- **Open-source ready** — MIT license, CONTRIBUTING.md, issue/PR templates, GitHub Actions CI + release workflows.
+- **Unified Release Pipeline** — Automates signed APK/AAB builds for both `main` branch and version tags.
+- **Community Signing** — No-secrets-required signing flow using a public community keystore (`app/community-release.jks`) as a fallback when private secrets are missing.
+- **Multiple Flavors** — `dappStore` (`.dapp`) and `googlePlay` (`.play`) flavors with distinct Application IDs to prevent package conflicts.
+- **Firebase Analytics** build-optional — build succeeds without google-services.json.
 
 ## Features — In Progress
 
