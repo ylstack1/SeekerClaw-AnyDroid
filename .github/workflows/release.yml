@@ -40,7 +40,7 @@ jobs:
       - name: Build dApp Store release APK
         run: chmod +x gradlew && ./gradlew assembleDappStoreRelease
         env:
-          SEEKERCLAW_KEYSTORE_PATH: dappstore-release.jks
+          SEEKERCLAW_KEYSTORE_PATH: app/dappstore-release.jks
           SEEKERCLAW_STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           SEEKERCLAW_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           SEEKERCLAW_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
@@ -98,7 +98,7 @@ jobs:
       - name: Build Google Play release AAB and APK
         run: chmod +x gradlew && ./gradlew bundleGooglePlayRelease assembleGooglePlayRelease
         env:
-          PLAY_KEYSTORE_PATH: googleplay-release.jks
+          PLAY_KEYSTORE_PATH: app/googleplay-release.jks
           PLAY_STORE_PASSWORD: ${{ secrets.PLAY_STORE_PASSWORD }}
           PLAY_KEY_ALIAS: ${{ secrets.PLAY_KEY_ALIAS }}
           PLAY_KEY_PASSWORD: ${{ secrets.PLAY_KEY_PASSWORD }}
@@ -136,12 +136,14 @@ jobs:
         with:
           name: dappstore-apk
           path: artifacts/
+          merge-multiple: true
 
       - name: Download Google Play artifacts
         uses: actions/download-artifact@v4
         with:
           name: googleplay-artifacts
           path: artifacts/
+          merge-multiple: true
         continue-on-error: true
 
       - name: Get version from tag
@@ -184,3 +186,10 @@ jobs:
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-rc') }}
           files: artifacts/*
+
+      - name: Add Job Summary
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Version: ${{ steps.version.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "Artifacts included in release:" >> $GITHUB_STEP_SUMMARY
+          ls artifacts/ | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY || echo "No artifacts found" >> $GITHUB_STEP_SUMMARY
