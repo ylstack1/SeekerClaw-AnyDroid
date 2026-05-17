@@ -8,7 +8,7 @@ SeekerClaw turns a Solana Seeker phone into a 24/7 personal AI agent you control
 
 ## Elevator Pitch
 
-SeekerClaw embeds a full Node.js runtime inside an Android app, running an OpenClaw-compatible AI gateway as a foreground service. Users interact with their agent through Telegram — the app itself is minimal (setup, status, logs, settings). The agent has 60 tools + MCP dynamic, 35 skills (20 bundled + 13 workspace + 2 user-created), ranked memory search, cron scheduling, Android device control, Solana wallet integration, and web intelligence — all running locally on the phone, 24/7. Supports both Telegram and Discord channels.
+SeekerClaw embeds a full Node.js runtime inside an Android app, running an OpenClaw-compatible AI gateway as a foreground service. Users interact with their agent through Telegram — the app itself is minimal (setup, status, logs, settings). The agent has 61 tools + MCP dynamic, 35 skills (20 bundled + 13 workspace + 2 user-created), ranked memory search, cron scheduling, Android device control, Solana wallet integration, and web intelligence — all running locally on the phone, 24/7. Supports both Telegram and Discord channels.
 
 ## What It Is
 
@@ -60,6 +60,7 @@ SeekerClaw is an Android app built for the Solana Seeker phone (also works on an
 - **Search provider system** — Configurable web search backend (Exa, Tavily, Firecrawl, Brave, Perplexity) with per-provider API key management in Settings. Single-provider architecture — one active at a time.
 - **Skill routing** — Routing blocks prevent conflicting skills from firing together; reply tag first-token rule for reliable `[[reply_to_current]]` detection
 - **Skill requirements gating** — Skills with `requires.bins` or `requires.env` in YAML frontmatter are checked at runtime; unmet requirements are reported and skill is skipped
+- **Skill Marketplace** (v1.11.0, 2026-05-17) — Live community marketplace integrated into the Skills screen. Users can search ClawHub.ai for new skills and install them with one tap. Agent also has the `skill_marketplace_search` tool to discover community skills for the user.
 - **Env Vars** (v1.9.1, 2026-04-17) — user-managed env var store in Settings. Feeds `process.env` on Node side. Skill `requires.env` gates now work out of the box. New `env_list` tool exposes key names only to the agent (never values). Skills screen shows red-dot for missing envs with one-tap add flow. Raw editor for round-trip bulk edit with added/modified/removed/invalid diff preview.
 
 ### Memory System

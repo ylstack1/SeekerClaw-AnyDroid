@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -27,7 +29,11 @@ jobs:
         run: node tests/nodejs-project/smoke.js
 
       - name: Build debug APKs
-        run: chmod +x gradlew && ./gradlew assembleDappStoreDebug assembleGooglePlayDebug
+        run: |
+          VERSION_CODE=$(git rev-list --count HEAD)
+          VERSION_NAME=$(echo "${{ github.event.pull_request.head.ref || github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/_/g')
+          echo "Building with VERSION_CODE=$VERSION_CODE, VERSION_NAME=$VERSION_NAME"
+          chmod +x gradlew && VERSION_CODE=$VERSION_CODE VERSION_NAME=$VERSION_NAME ./gradlew assembleDappStoreDebug assembleGooglePlayDebug
 
       - name: Rename debug APKs
         run: |

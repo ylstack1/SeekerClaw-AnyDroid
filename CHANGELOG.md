@@ -5,6 +5,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-05-17
+
+### Added
+- **Skill Marketplace integration with ClawHub.ai** — Live community marketplace integrated into the Skills screen. Users can search for and install skills with one tap.
+- **`skill_marketplace_search` tool** — The agent can now search ClawHub.ai for new skills and suggest them to the user.
+- **Marketplace repository and UI** — New `MarketplaceScreen` and `MarketplaceRepository` for handling community skills.
+
 ## [1.10.0] - 2026-05-02
 
 ### Added

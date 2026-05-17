@@ -38,8 +38,12 @@ android {
         applicationId = "com.seekerclaw.app"
         minSdk = 29
         targetSdk = 35
-        versionCode = 19
-        versionName = "1.10.0"
+        
+        // BAT-580: Automated versioning for CI/CD.
+        // Use environment variables from GitHub Actions if available,
+        // otherwise fall back to hardcoded defaults for local development.
+        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 20
+        versionName = System.getenv("VERSION_NAME") ?: "1.11.0"
 
         // Keep these in sync when updating OpenClaw or nodejs-mobile
         buildConfigField("String", "OPENCLAW_VERSION", "\"2026.4.10\"")
