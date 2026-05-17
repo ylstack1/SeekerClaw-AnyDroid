@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -43,7 +45,7 @@ jobs:
         run: |
           VERSION_CODE=$(git rev-list --count HEAD)
           echo "Building with VERSION_CODE=$VERSION_CODE"
-          chmod +x gradlew && VERSION_CODE=$VERSION_CODE VERSION_NAME=${{ github.ref_name }} ./gradlew assembleDappStoreRelease
+          chmod +x gradlew && VERSION_CODE=$VERSION_CODE ./gradlew assembleDappStoreRelease
         env:
           SEEKERCLAW_KEYSTORE_PATH: app/dappstore-release.jks
           SEEKERCLAW_STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
@@ -64,13 +66,19 @@ jobs:
       - name: Rename APK
         run: |
           APK=$(find app/build/outputs/apk/dappStore/release -name '*.apk' | head -1)
-          mv "$APK" "SeekerClaw-${{ github.ref_name }}-dappStore.apk"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            NAME="SeekerClaw-${{ github.ref_name }}-dappStore.apk"
+          else
+            NAME="SeekerClaw-latest-dappStore.apk"
+          fi
+          mv "$APK" "$NAME"
+          echo "APK_NAME=$NAME" >> $GITHUB_ENV
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: dappstore-apk
-          path: "SeekerClaw-${{ github.ref_name }}-dappStore.apk"
+          path: "${{ env.APK_NAME }}"
 
   build-googleplay:
     runs-on: ubuntu-latest
@@ -106,7 +114,7 @@ jobs:
         run: |
           VERSION_CODE=$(git rev-list --count HEAD)
           echo "Building with VERSION_CODE=$VERSION_CODE"
-          chmod +x gradlew && VERSION_CODE=$VERSION_CODE VERSION_NAME=${{ github.ref_name }} ./gradlew bundleGooglePlayRelease assembleGooglePlayRelease
+          chmod +x gradlew && VERSION_CODE=$VERSION_CODE ./gradlew bundleGooglePlayRelease assembleGooglePlayRelease
         env:
           PLAY_KEYSTORE_PATH: app/googleplay-release.jks
           PLAY_STORE_PASSWORD: ${{ secrets.PLAY_STORE_PASSWORD }}
@@ -116,21 +124,24 @@ jobs:
       - name: Rename artifacts
         run: |
           AAB=$(find app/build/outputs/bundle/googlePlayRelease -name '*.aab' | head -1)
-          if [ -n "$AAB" ]; then
-            mv "$AAB" "SeekerClaw-${{ github.ref_name }}.aab"
-          fi
           APK=$(find app/build/outputs/apk/googlePlay/release -name '*.apk' | head -1)
-          if [ -n "$APK" ]; then
-            mv "$APK" "SeekerClaw-${{ github.ref_name }}-googlePlay.apk"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            AAB_NAME="SeekerClaw-${{ github.ref_name }}.aab"
+            APK_NAME="SeekerClaw-${{ github.ref_name }}-googlePlay.apk"
+          else
+            AAB_NAME="SeekerClaw-latest.aab"
+            APK_NAME="SeekerClaw-latest-googlePlay.apk"
           fi
+          if [ -n "$AAB" ]; then mv "$AAB" "$AAB_NAME"; fi
+          if [ -n "$APK" ]; then mv "$APK" "$APK_NAME"; fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: googleplay-artifacts
           path: |
-            SeekerClaw-${{ github.ref_name }}.aab
-            SeekerClaw-${{ github.ref_name }}-googlePlay.apk
+            SeekerClaw-*.aab
+            SeekerClaw-*-googlePlay.apk
           if-no-files-found: ignore
 
   release:
@@ -138,7 +149,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout (for CHANGELOG.md)
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Download dApp Store APK
@@ -156,12 +167,22 @@ jobs:
           merge-multiple: true
         continue-on-error: true
 
-      - name: Get version from tag
+      - name: Set Release Version
         id: version
-        run: echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "name=SeekerClaw ${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=${{ contains(github.ref_name, '-rc') }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            echo "name=Latest Build" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Extract changelog for version
         id: changelog
+        if: github.ref_type == 'tag'
         run: |
           TAG="${GITHUB_REF#refs/tags/v}"
           NOTES=$(awk "/^## \\[${TAG}\\]/{found=1; next} /^## \\[/{if(found) exit} found{print}" CHANGELOG.md)
@@ -177,25 +198,22 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create GitHub Release (with changelog)
-        if: steps.changelog.outputs.found == 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: SeekerClaw ${{ steps.version.outputs.tag }}
-          body: ${{ steps.changelog.outputs.notes }}
-          prerelease: ${{ contains(github.ref_name, '-rc') }}
-          files: artifacts/*
+      - name: Update Latest Tag
+        if: github.ref_name == 'main'
+        run: |
+          git tag -f latest
+          git push -f origin latest
 
-      - name: Create GitHub Release (auto-generated notes)
-        if: steps.changelog.outputs.found != 'true'
+      - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: SeekerClaw ${{ steps.version.outputs.tag }}
-          generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          name: ${{ steps.version.outputs.name }}
+          body: ${{ steps.changelog.outputs.notes || 'Automated build from latest main branch.' }}
+          generate_release_notes: ${{ steps.changelog.outputs.found != 'true' }}
+          prerelease: ${{ steps.version.outputs.prerelease }}
           files: artifacts/*
+          make_latest: ${{ github.ref_type == 'tag' && !contains(github.ref_name, '-rc') }}
 
       - name: Add Job Summary
         run: |

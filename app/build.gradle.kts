@@ -42,17 +42,32 @@ android {
         // BAT-580: Automated versioning for CI/CD.
         // Use environment variables from GitHub Actions if available,
         // otherwise fall back to hardcoded defaults for local development.
+        val baseVersion = "1.11.0"
         versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 20
-        versionName = System.getenv("VERSION_NAME") ?: "1.11.0"
+        
+        // Git commit SHA (short) — always available, every build knows its source
+        val gitSha = try {
+            providers.exec {
+                commandLine("git", "rev-parse", "--short", "HEAD")
+            }.standardOutput.asText.get().trim()
+        } catch (e: Exception) {
+            "unknown"
+        }
 
-        // Keep these in sync when updating OpenClaw or nodejs-mobile
+        versionName = System.getenv("VERSION_NAME") ?: run {
+            val refName = System.getenv("GITHUB_REF_NAME")
+            val refType = System.getenv("GITHUB_REF_TYPE")
+            if (refType == "tag") {
+                refName
+            } else if (refName == "main") {
+                "$baseVersion-main-$gitSha"
+            } else {
+                baseVersion
+            }
+        }
+
         buildConfigField("String", "OPENCLAW_VERSION", "\"2026.4.10\"")
         buildConfigField("String", "NODEJS_VERSION", "\"18 LTS\"")
-
-        // Git commit SHA (short) — always available, every build knows its source
-        val gitSha = providers.exec {
-            commandLine("git", "rev-parse", "--short", "HEAD")
-        }.standardOutput.asText.get().trim()
         buildConfigField("String", "GIT_SHA", "\"$gitSha\"")
 
         // Build timestamp (ISO date)

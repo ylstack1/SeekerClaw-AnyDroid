@@ -5,6 +5,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+- **Unified CI/CD Release Pipeline** — Consolidated build and release automation. Every push to `main` now updates a "Latest" Pre-release on GitHub with signed APKs.
+- **Consistent Signing** — All CI builds (tags and main branch) now use stable signing keys from secrets, enabling seamless upgrades from "Latest" builds to tagged releases.
+- **Automated Versioning** — `versionName` now follows a consistent pattern: `{base_version}-main-{sha}` for main branch builds and the tag name for tagged releases.
+- **Release Asset Publishing** — APKs and AABs are now automatically attached as GitHub Release assets for direct download.
+
 ## [1.11.0] - 2026-05-17
 
 ### Added
