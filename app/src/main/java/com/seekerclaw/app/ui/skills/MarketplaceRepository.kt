@@ -19,7 +19,8 @@ object MarketplaceRepository {
             if (status !in 200..299) {
                 error("Marketplace search failed ($status)")
             }
-            val arr = JSONArray(body)
+            val responseObj = JSONObject(body)
+            val arr = responseObj.optJSONArray("items") ?: JSONArray()
             val skills = mutableListOf<MarketplaceSkill>()
             for (i in 0 until arr.length()) {
                 val obj = arr.getJSONObject(i)
@@ -41,10 +42,10 @@ object MarketplaceRepository {
 
     private fun parseSkill(obj: JSONObject): MarketplaceSkill {
         return MarketplaceSkill(
-            id = obj.getString("id"),
-            name = obj.getString("name"),
-            description = obj.optString("description", ""),
-            version = obj.optString("version", "1.0.0"),
+            id = obj.getString("slug"),
+            name = obj.getString("displayName"),
+            description = obj.optString("summary", ""),
+            version = obj.optJSONObject("latestVersion")?.optString("version", "1.0.0") ?: "1.0.0",
             emoji = obj.optString("emoji", "🧩"),
             author = obj.optString("author", ""),
             imageUrl = obj.optString("imageUrl", ""),
