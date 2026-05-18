@@ -229,7 +229,7 @@ const handlers = {
 
     async skill_marketplace_search(input) {
         const { query } = input;
-        const baseUrl = 'https://clawhub.ai/api/v1';
+        const baseUrl = 'https://api.clawhub.ai/v1';
         const url = (!query || query.trim() === '')
             ? `${baseUrl}/skills?limit=50&sort=createdAt`
             : `${baseUrl}/search?q=${encodeURIComponent(query)}`;
@@ -244,14 +244,17 @@ const handlers = {
             
             // Handle various response shapes:
             // 1. Direct array: [ {...}, {...} ]
-            // 2. Wrapped with "items": { items: [...] }
-            // 3. Wrapped with "skills": { skills: [...] }
-            // 4. Wrapped with "data": { data: [...] } or { data: { items: [...] } }
+            // 2. Wrapped with "results": { results: [...] }
+            // 3. Wrapped with "items": { items: [...] }
+            // 4. Wrapped with "skills": { skills: [...] }
+            // 5. Wrapped with "data": { data: [...] } or { data: { results/items: [...] } }
             let skills = [];
             if (Array.isArray(rawData)) {
                 skills = rawData;
             } else if (rawData && typeof rawData === 'object') {
-                if (rawData.items) {
+                if (rawData.results) {
+                    skills = Array.isArray(rawData.results) ? rawData.results : [];
+                } else if (rawData.items) {
                     skills = Array.isArray(rawData.items) ? rawData.items : [];
                 } else if (rawData.skills) {
                     skills = Array.isArray(rawData.skills) ? rawData.skills : [];
@@ -260,7 +263,7 @@ const handlers = {
                     if (Array.isArray(inner)) {
                         skills = inner;
                     } else if (typeof inner === 'object') {
-                        skills = inner.items || inner.skills || [];
+                        skills = inner.results || inner.items || inner.skills || [];
                     }
                 }
             }

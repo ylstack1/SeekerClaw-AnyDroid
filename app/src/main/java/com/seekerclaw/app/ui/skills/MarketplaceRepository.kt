@@ -9,7 +9,7 @@ import java.net.URL
 import java.net.URLEncoder
 
 object MarketplaceRepository {
-    private const val BASE_URL = "https://clawhub.ai/api/v1"
+    private const val BASE_URL = "https://api.clawhub.ai/v1"
 
     suspend fun searchSkills(query: String): Result<List<MarketplaceSkill>> = withContext(Dispatchers.IO) {
         runCatching {
@@ -24,13 +24,15 @@ object MarketplaceRepository {
                 error("Marketplace search failed ($status)")
             }
             val responseObj = JSONObject(body)
-            // Handle both direct array responses and wrapped objects with "items" or "skills" keys
+            // Handle both direct array responses and wrapped objects with "results", "items" or "skills" keys
             val arr = when {
+                responseObj.has("results") -> responseObj.getJSONArray("results")
                 responseObj.has("items") -> responseObj.getJSONArray("items")
                 responseObj.has("skills") -> responseObj.getJSONArray("skills")
                 responseObj.has("data") -> {
                     val data = responseObj.get("data")
                     if (data is JSONArray) data
+                    else if (data is JSONObject && data.has("results")) data.getJSONArray("results")
                     else if (data is JSONObject && data.has("items")) data.getJSONArray("items")
                     else if (data is JSONObject && data.has("skills")) data.getJSONArray("skills")
                     else JSONArray()
@@ -94,7 +96,7 @@ object MarketplaceRepository {
             List(arr.length()) { arr.getString(it) }
         } ?: emptyList()
         return MarketplaceSkill(
-            id = obj.getString("slug"),
+            id = obj.optString("slug", obj.optString("id", "")),
             name = name,
             description = description,
             version = version,
