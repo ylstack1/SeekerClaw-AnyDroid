@@ -9,7 +9,7 @@ import java.net.URL
 import java.net.URLEncoder
 
 object MarketplaceRepository {
-    private const val BASE_URL = "https://clawhub.ai/api/v1"
+    private const val BASE_URL = "https://clawhub.xyz/api/v1"
 
     suspend fun searchSkills(query: String): Result<List<MarketplaceSkill>> = withContext(Dispatchers.IO) {
         runCatching {
@@ -41,21 +41,53 @@ object MarketplaceRepository {
     }
 
     private fun parseSkill(obj: JSONObject): MarketplaceSkill {
+        // ClawHub API v2 fields — nested structure
+        val name = obj.optString("name", obj.optString("displayName", ""))
+        val description = obj.optString("description", obj.optString("summary", ""))
+        val emoji = obj.optString("emoji", "🧩")
+        // author may be string or nested object {"name": "..."}
+        val authorRaw = obj.opt("author")
+        val author = when {
+            authorRaw is JSONObject -> authorRaw.optString("name", "")
+            authorRaw is String -> authorRaw
+            else -> ""
+        }
+        // image may be string or nested object {"url": "..."}
+        val imageRaw = obj.opt("image")
+        val imageUrl = when {
+            imageRaw is JSONObject -> imageRaw.optString("url", "")
+            imageRaw is String -> imageRaw
+            else -> ""
+        }
+        // download may be string or nested object {"url": "..."}
+        val downloadRaw = obj.opt("download")
+        val downloadUrl = when {
+            downloadRaw is JSONObject -> downloadRaw.optString("url", "")
+            downloadRaw is String -> downloadRaw
+            else -> ""
+        }
+        // version from latestVersion object or direct version field
+        val version = obj.optJSONObject("latestVersion")?.optString("version")
+            ?: obj.optString("version", "1.0.0")
+        // triggers array
+        val triggers = obj.optJSONArray("triggers")?.let { arr ->
+            List(arr.length()) { arr.getString(it) }
+        } ?: emptyList()
+        // requiresEnv array
+        val requiresEnv = obj.optJSONArray("requiresEnv")?.let { arr ->
+            List(arr.length()) { arr.getString(it) }
+        } ?: emptyList()
         return MarketplaceSkill(
             id = obj.getString("slug"),
-            name = obj.getString("displayName"),
-            description = obj.optString("summary", ""),
-            version = obj.optJSONObject("latestVersion")?.optString("version", "1.0.0") ?: "1.0.0",
-            emoji = obj.optString("emoji", "🧩"),
-            author = obj.optString("author", ""),
-            imageUrl = obj.optString("imageUrl", ""),
-            downloadUrl = obj.optString("downloadUrl", ""),
-            triggers = obj.optJSONArray("triggers")?.let { arr ->
-                List(arr.length()) { arr.getString(it) }
-            } ?: emptyList(),
-            requiresEnv = obj.optJSONArray("requiresEnv")?.let { arr ->
-                List(arr.length()) { arr.getString(it) }
-            } ?: emptyList(),
+            name = name,
+            description = description,
+            version = version,
+            emoji = emoji,
+            author = author,
+            imageUrl = imageUrl,
+            downloadUrl = downloadUrl,
+            triggers = triggers,
+            requiresEnv = requiresEnv,
         )
     }
 

@@ -193,6 +193,7 @@ fun SettingsScreen(
     var showImportDialog by remember { mutableStateOf(false) }
     var showApplyConfigDialog by remember { mutableStateOf(false) }
     var showRestartDialog by remember { mutableStateOf(false) }
+    var showFullBackupImportDialog by remember { mutableStateOf(false) }
     var isConfigImporting by remember { mutableStateOf(false) }
     var configImportError by remember { mutableStateOf<String?>(null) }
     var pendingConfigImport by remember { mutableStateOf<ConfigClaimImport?>(null) }
@@ -323,7 +324,40 @@ fun SettingsScreen(
                 }
             }
         }
+    
+    // Full backup export launcher
+    val fullBackupExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val success = withContext(Dispatchers.IO) { ConfigManager.exportFullBackup(context, uri) }
+                Toast.makeText(
+                    context,
+                    if (success) "Full backup exported" else "Export failed",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
     }
+
+    // Full backup import launcher
+    val fullBackupImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val success = withContext(Dispatchers.IO) { ConfigManager.importFullBackup(context, uri) }
+                Toast.makeText(
+                    context,
+                    if (success) "Full backup restored. Restart agent to apply." else "Restore failed",
+                    Toast.LENGTH_LONG,
+                ).show()
+                if (success) showRestartDialog = true
+            }
+        }
+    }
+}
 
     val qrConfigLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -865,6 +899,60 @@ fun SettingsScreen(
                         fontSize = 14.sp,
                     )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Full Backup / Restore section
+                Text(
+                    text = "FULL BACKUP",
+                    fontFamily = RethinkSans,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = SeekerClawColors.TextDim,
+                    letterSpacing = 0.5.sp,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+
+                OutlinedButton(
+                    onClick = {
+                        Analytics.featureUsed("full_backup_exported")
+                        val timestamp = android.text.format.DateFormat.format("yyyyMMdd_HHmm", Date())
+                        fullBackupExportLauncher.launch("seekerclaw_full_backup_$timestamp.zip")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = shape,
+                    border = BorderStroke(1.dp, SeekerClawColors.Primary.copy(alpha = 0.5f)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = SeekerClawColors.Primary,
+                    ),
+                ) {
+                    Text(
+                        "Export Full Backup",
+                        fontFamily = RethinkSans,
+                        fontSize = 14.sp,
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedButton(
+                    onClick = {
+                        Analytics.featureUsed("full_backup_imported")
+                        showFullBackupImportDialog = true
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = shape,
+                    border = BorderStroke(1.dp, SeekerClawColors.Primary.copy(alpha = 0.5f)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = SeekerClawColors.Primary,
+                    ),
+                ) {
+                    Text(
+                        "Import Full Backup",
+                        fontFamily = RethinkSans,
+                        fontSize = 14.sp,
+                    )
+                }
             }
         }
 
@@ -1130,6 +1218,56 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showImportDialog = false }) {
+                    Text(
+                        "Cancel",
+                        fontFamily = RethinkSans,
+                        color = SeekerClawColors.TextDim,
+                    )
+                }
+            },
+            containerColor = SeekerClawColors.Surface,
+            shape = shape,
+        )
+    }
+
+    // ==================== Full Backup Import Dialog ====================
+    if (showFullBackupImportDialog) {
+        AlertDialog(
+            onDismissRequest = { showFullBackupImportDialog = false },
+            title = {
+                Text(
+                    "Import Full Backup",
+                    fontFamily = RethinkSans,
+                    fontWeight = FontWeight.Bold,
+                    color = SeekerClawColors.Warning,
+                )
+            },
+            text = {
+                Text(
+                    "This will restore your full configuration and environment variables from a backup ZIP file.\n\n" +
+                        "A safety backup is created automatically before importing.\n\n" +
+                        "After restoring, you'll be asked to restart the agent to apply changes.",
+                    fontFamily = RethinkSans,
+                    fontSize = 13.sp,
+                    color = SeekerClawColors.TextSecondary,
+                    lineHeight = 20.sp,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showFullBackupImportDialog = false
+                    fullBackupImportLauncher.launch(arrayOf("application/zip", "application/octet-stream"))
+                }) {
+                    Text(
+                        "Select Backup",
+                        fontFamily = RethinkSans,
+                        fontWeight = FontWeight.Bold,
+                        color = SeekerClawColors.Warning,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFullBackupImportDialog = false }) {
                     Text(
                         "Cancel",
                         fontFamily = RethinkSans,
