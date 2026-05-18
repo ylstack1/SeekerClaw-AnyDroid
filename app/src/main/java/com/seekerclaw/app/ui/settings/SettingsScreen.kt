@@ -194,6 +194,7 @@ fun SettingsScreen(
     var showApplyConfigDialog by remember { mutableStateOf(false) }
     var showRestartDialog by remember { mutableStateOf(false) }
     var showFullBackupImportDialog by remember { mutableStateOf(false) }
+    var showFullBackupExportWarning by remember { mutableStateOf(false) }
     var isConfigImporting by remember { mutableStateOf(false) }
     var configImportError by remember { mutableStateOf<String?>(null) }
     var pendingConfigImport by remember { mutableStateOf<ConfigClaimImport?>(null) }
@@ -357,7 +358,6 @@ fun SettingsScreen(
             }
         }
     }
-}
 
     val qrConfigLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -916,8 +916,7 @@ fun SettingsScreen(
                 OutlinedButton(
                     onClick = {
                         Analytics.featureUsed("full_backup_exported")
-                        val timestamp = android.text.format.DateFormat.format("yyyyMMdd_HHmm", Date())
-                        fullBackupExportLauncher.launch("seekerclaw_full_backup_$timestamp.zip")
+                        showFullBackupExportWarning = true
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = shape,
@@ -1268,6 +1267,66 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showFullBackupImportDialog = false }) {
+                    Text(
+                        "Cancel",
+                        fontFamily = RethinkSans,
+                        color = SeekerClawColors.TextDim,
+                    )
+                }
+            },
+            containerColor = SeekerClawColors.Surface,
+            shape = shape,
+        )
+    }
+
+    // ==================== Full Backup Export Warning Dialog ====================
+    if (showFullBackupExportWarning) {
+        AlertDialog(
+            onDismissRequest = { showFullBackupExportWarning = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = SeekerClawColors.Warning,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Export Full Backup",
+                        fontFamily = RethinkSans,
+                        fontWeight = FontWeight.Bold,
+                        color = SeekerClawColors.Warning,
+                    )
+                }
+            },
+            text = {
+                Text(
+                    "This backup will include your decrypted API keys, tokens, and all configuration.\n\n" +
+                        "⚠️ Store this file securely — anyone with access to it can access your accounts.\n\n" +
+                        "The backup also includes your agent's memory and skills.",
+                    fontFamily = RethinkSans,
+                    fontSize = 13.sp,
+                    color = SeekerClawColors.TextSecondary,
+                    lineHeight = 20.sp,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showFullBackupExportWarning = false
+                    val timestamp = android.text.format.DateFormat.format("yyyyMMdd_HHmm", Date())
+                    fullBackupExportLauncher.launch("seekerclaw_full_backup_$timestamp.zip")
+                }) {
+                    Text(
+                        "Export Anyway",
+                        fontFamily = RethinkSans,
+                        fontWeight = FontWeight.Bold,
+                        color = SeekerClawColors.Warning,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFullBackupExportWarning = false }) {
                     Text(
                         "Cancel",
                         fontFamily = RethinkSans,
