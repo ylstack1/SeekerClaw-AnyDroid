@@ -3139,4 +3139,252 @@ object ConfigManager {
             false
         }
     }
+    // ==================== Full Backup / Restore ====================
+
+    /**
+     * Export full configuration and environment variables to a ZIP file at the given URI.
+     * The backup includes: config.json (all settings), env.json (environment variables),
+     * and workspace files (SOUL.md, MEMORY.md, skills, memory, cron).
+     * Excludes sensitive data from direct inclusion — credentials are written
+     * from prefs (Keystore-encrypted) to the backup JSON, so the backup is only
+     * as safe as wherever the user saves it.
+     */
+    fun exportFullBackup(context: Context, uri: Uri): Boolean {
+        val workspaceDir = File(context.filesDir, "workspace")
+        if (!workspaceDir.exists()) {
+            Log.e(TAG, "Workspace directory does not exist")
+            return false
+        }
+        return try {
+            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                ZipOutputStream(outputStream).use { zip ->
+                    val config = loadConfig(context)
+                    if (config != null) {
+                        val configJson = buildConfigJsonForExport(context, config)
+                        zip.putNextEntry(ZipEntry("config.json"))
+                        zip.write(configJson.toString(2).toByteArray(Charsets.UTF_8))
+                        zip.closeEntry()
+                    }
+                    val envVars = loadEnvVars(context)
+                    if (envVars.isNotEmpty()) {
+                        val envJson = JSONArray().apply {
+                            for (v in envVars) {
+                                put(JSONObject().apply {
+                                    put("name", v.name)
+                                    put("value", v.value)
+                                })
+                            }
+                        }
+                        zip.putNextEntry(ZipEntry("env.json"))
+                        zip.write(envJson.toString(2).toByteArray(Charsets.UTF_8))
+                        zip.closeEntry()
+                    }
+                    addAllowedFilesToZip(zip, workspaceDir, workspaceDir)
+                }
+            }
+            Log.i(TAG, "Full backup exported successfully")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to export full backup", e)
+            false
+        }
+    }
+
+    private fun buildConfigJsonForExport(context: Context, config: AppConfig): JSONObject {
+        val json = JSONObject()
+        json.put("provider", config.provider)
+        json.put("model", config.model)
+        json.put("authType", config.authType)
+        json.put("channel", config.channel)
+        if (config.anthropicApiKey.isNotBlank()) json.put("anthropicApiKey", config.anthropicApiKey)
+        if (config.setupToken.isNotBlank()) json.put("setupToken", config.setupToken)
+        if (config.openaiApiKey.isNotBlank()) json.put("openaiApiKey", config.openaiApiKey)
+        if (config.openrouterApiKey.isNotBlank()) json.put("openrouterApiKey", config.openrouterApiKey)
+        if (config.openrouterFallbackModel.isNotBlank()) json.put("openrouterFallbackModel", config.openrouterFallbackModel)
+        if (config.openrouterModelContext.isNotBlank()) json.put("openrouterModelContext", config.openrouterModelContext)
+        if (config.openrouterFallbackContext.isNotBlank()) json.put("openrouterFallbackContext", config.openrouterFallbackContext)
+        if (config.customApiKey.isNotBlank()) json.put("customApiKey", config.customApiKey)
+        if (config.customBaseUrl.isNotBlank()) json.put("customBaseUrl", config.customBaseUrl)
+        if (config.customHeaders.isNotBlank()) json.put("customHeaders", config.customHeaders)
+        if (config.customFormat.isNotBlank()) json.put("customFormat", config.customFormat)
+        if (config.telegramBotToken.isNotBlank()) json.put("telegramBotToken", config.telegramBotToken)
+        if (config.telegramOwnerId.isNotBlank()) json.put("telegramOwnerId", config.telegramOwnerId)
+        if (config.discordBotToken.isNotBlank()) json.put("discordBotToken", config.discordBotToken)
+        if (config.discordOwnerId.isNotBlank()) json.put("discordOwnerId", config.discordOwnerId)
+        json.put("searchProvider", config.searchProvider)
+        if (config.braveApiKey.isNotBlank()) json.put("braveApiKey", config.braveApiKey)
+        if (config.perplexityApiKey.isNotBlank()) json.put("perplexityApiKey", config.perplexityApiKey)
+        if (config.exaApiKey.isNotBlank()) json.put("exaApiKey", config.exaApiKey)
+        if (config.tavilyApiKey.isNotBlank()) json.put("tavilyApiKey", config.tavilyApiKey)
+        if (config.firecrawlApiKey.isNotBlank()) json.put("firecrawlApiKey", config.firecrawlApiKey)
+        if (config.jupiterApiKey.isNotBlank()) json.put("jupiterApiKey", config.jupiterApiKey)
+        if (config.heliusApiKey.isNotBlank()) json.put("heliusApiKey", config.heliusApiKey)
+        json.put("agentName", config.agentName)
+        json.put("heartbeatIntervalMinutes", config.heartbeatIntervalMinutes)
+        json.put("maxStepsPerTurn", config.maxStepsPerTurn)
+        json.put("autoStartOnBoot", config.autoStartOnBoot)
+        val mcpServers = loadMcpServers(context)
+        if (mcpServers.isNotEmpty()) {
+            val arr = JSONArray()
+            for (s in mcpServers) {
+                arr.put(JSONObject().apply {
+                    put("id", s.id); put("name", s.name); put("url", s.url)
+                    put("authToken", s.authToken); put("enabled", s.enabled); put("rateLimit", s.rateLimit)
+                })
+            }
+            json.put("mcpServers", arr)
+        }
+        return json
+    }
+
+    /**
+     * Import full configuration and environment variables from a ZIP backup.
+     * Restores: config.json, env.json, and workspace files.
+     * Auto-creates a safety backup before importing.
+     * Requires the backup to contain config.json (credentials are mandatory).
+     */
+    fun importFullBackup(context: Context, uri: Uri): Boolean {
+        val workspaceDir = File(context.filesDir, "workspace").apply { mkdirs() }
+        // Auto-backup current state before overwriting
+        try {
+            val backupDir = File(context.filesDir, "backup").apply { mkdirs() }
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+            val backupFile = File(backupDir, "pre_restore_$timestamp.zip")
+            backupFile.outputStream().use { outputStream ->
+                ZipOutputStream(outputStream).use { zip ->
+                    addAllowedFilesToZip(zip, workspaceDir, workspaceDir)
+                }
+            }
+            Log.i(TAG, "Pre-restore backup created: ${backupFile.absolutePath}")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to create pre-restore backup: ${e.message}")
+        }
+
+        val extractedFiles = mutableListOf<File>()
+        val restoredEnvVars = mutableListOf<EnvVar>()
+        var restoredConfig: AppConfig? = null
+
+        return try {
+            // Pre-check: must contain config.json
+            var hasConfig = false
+            var hasEnv = false
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                ZipInputStream(inputStream).use { zip ->
+                    var entry = zip.nextEntry
+                    while (entry != null) {
+                        val name = entry.name
+                        if (name == "config.json") hasConfig = true
+                        if (name == "env.json") hasEnv = true
+                        zip.closeEntry()
+                        entry = zip.nextEntry
+                        if (hasConfig && hasEnv) break
+                    }
+                }
+            }
+            if (!hasConfig) {
+                Log.e(TAG, "Backup does not contain config.json — not a valid full backup")
+                return false
+            }
+
+            var totalExtracted = 0L
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                ZipInputStream(inputStream).use { zip ->
+                    var entry = zip.nextEntry
+                    while (entry != null) {
+                        val entryName = entry.name
+                        when (entryName) {
+                            "config.json" -> {
+                                val bytes = zip.readBytes()
+                                restoredConfig = parseConfigJsonFromBackup(context, bytes)
+                            }
+                            "env.json" -> {
+                                val bytes = zip.readBytes()
+                                val arr = JSONArray(String(bytes, Charsets.UTF_8))
+                                for (i in 0 until arr.length()) {
+                                    val obj = arr.getJSONObject(i)
+                                    restoredEnvVars.add(EnvVar(obj.getString("name"), obj.optString("value", "")))
+                                }
+                            }
+                            else -> {
+                                if (isAllowedPath(entryName)) {
+                                    val destFile = File(workspaceDir, entryName)
+                                    if (!destFile.canonicalPath.startsWith(workspaceDir.canonicalPath)) {
+                                        zip.closeEntry(); entry = zip.nextEntry; continue
+                                    }
+                                    destFile.parentFile?.mkdirs()
+                                    destFile.outputStream().use { out ->
+                                        val buffer = ByteArray(8192)
+                                        var bytesRead: Int
+                                        while (zip.read(buffer).also { bytesRead = it } != -1) {
+                                            totalExtracted += bytesRead
+                                            if (totalExtracted > IMPORT_MAX_BYTES) {
+                                                destFile.delete()
+                                                throw IllegalStateException("Backup exceeds limit")
+                                            }
+                                            out.write(buffer, 0, bytesRead)
+                                        }
+                                    }
+                                    extractedFiles.add(destFile)
+                                }
+                            }
+                        }
+                        zip.closeEntry()
+                        entry = zip.nextEntry
+                    }
+                }
+            }
+
+            // Persist config and env vars
+            restoredConfig?.let { saveConfig(context, it) }
+            if (restoredEnvVars.isNotEmpty()) saveEnvVars(context, restoredEnvVars)
+            bumpConfigVersionOnMain()
+            Log.i(TAG, "Full backup restored (config=${restoredConfig != null}, env=${restoredEnvVars.size}, ${totalExtracted / 1024}KB)")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to restore full backup: ${e.message}", e)
+            for (file in extractedFiles) {
+                try { file.delete() } catch (ex: Exception) {
+                    Log.w(TAG, "Rollback: failed to delete ${file.path}: ${ex.message}")
+                }
+            }
+            false
+        }
+    }
+
+    private fun parseConfigJsonFromBackup(context: Context, jsonBytes: ByteArray): AppConfig {
+        val json = JSONObject(String(jsonBytes, Charsets.UTF_8))
+        return loadConfig(context)?.copy(
+            provider = json.optString("provider", ""),
+            model = json.optString("model", ""),
+            authType = json.optString("authType", ""),
+            channel = json.optString("channel", ""),
+            agentName = json.optString("agentName", ""),
+            searchProvider = json.optString("searchProvider", ""),
+            braveApiKey = json.optString("braveApiKey", ""),
+            perplexityApiKey = json.optString("perplexityApiKey", ""),
+            exaApiKey = json.optString("exaApiKey", ""),
+            tavilyApiKey = json.optString("tavilyApiKey", ""),
+            firecrawlApiKey = json.optString("firecrawlApiKey", ""),
+            jupiterApiKey = json.optString("jupiterApiKey", ""),
+            heliusApiKey = json.optString("heliusApiKey", ""),
+            openaiApiKey = json.optString("openaiApiKey", ""),
+            openrouterApiKey = json.optString("openrouterApiKey", ""),
+            openrouterFallbackModel = json.optString("openrouterFallbackModel", ""),
+            openrouterModelContext = json.optString("openrouterModelContext", ""),
+            openrouterFallbackContext = json.optString("openrouterFallbackContext", ""),
+            customApiKey = json.optString("customApiKey", ""),
+            customBaseUrl = json.optString("customBaseUrl", ""),
+            customHeaders = json.optString("customHeaders", ""),
+            customFormat = json.optString("customFormat", "chat_completions"),
+        ) ?: AppConfig(
+            anthropicApiKey = "",
+            setupToken = "",
+            telegramBotToken = "",
+            telegramOwnerId = json.optString("telegramOwnerId", ""),
+            model = json.optString("model", "claude-opus-4-7"),
+            agentName = json.optString("agentName", "SeekerClaw"),
+            provider = json.optString("provider", "claude"),
+        )
+    }
+
 }
