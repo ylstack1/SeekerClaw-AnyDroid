@@ -229,7 +229,10 @@ const handlers = {
 
     async skill_marketplace_search(input) {
         const { query } = input;
-        const url = `https://api.clawhub.ai/v1/skills?q=${encodeURIComponent(query)}`;
+        const baseUrl = 'https://clawhub.ai/api/v1';
+        const url = (!query || query.trim() === '')
+            ? `${baseUrl}/skills?limit=50&sort=createdAt`
+            : `${baseUrl}/search?q=${encodeURIComponent(query)}`;
         
         try {
             const res = await webFetch(url, { timeout: 15000 });

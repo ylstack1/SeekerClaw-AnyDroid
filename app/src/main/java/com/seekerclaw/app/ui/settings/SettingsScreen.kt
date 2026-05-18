@@ -325,7 +325,8 @@ fun SettingsScreen(
                 }
             }
         }
-    
+    }
+
     // Full backup export launcher
     val fullBackupExportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/zip")

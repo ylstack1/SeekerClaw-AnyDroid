@@ -18,6 +18,8 @@ import com.seekerclaw.app.state.AgentPreferencesStore
 import com.seekerclaw.app.state.CustomConfigSignature
 import com.seekerclaw.app.state.RuntimeState
 import com.seekerclaw.app.state.RuntimeStateStore
+import com.seekerclaw.app.state.McpServer
+import com.seekerclaw.app.state.McpServersStore
 import com.seekerclaw.app.util.LogCollector
 import com.seekerclaw.app.util.LogLevel
 import org.json.JSONArray
@@ -3243,7 +3245,7 @@ object ConfigManager {
      * Auto-creates a safety backup before importing.
      * Requires the backup to contain config.json (credentials are mandatory).
      */
-    fun importFullBackup(context: Context, uri: Uri): Boolean {
+    suspend fun importFullBackup(context: Context, uri: Uri): Boolean {
         val workspaceDir = File(context.filesDir, "workspace").apply { mkdirs() }
         // Auto-backup current state before overwriting
         try {
@@ -3295,7 +3297,33 @@ object ConfigManager {
                         when (entryName) {
                             "config.json" -> {
                                 val bytes = zip.readBytes()
+                                val json = JSONObject(String(bytes, Charsets.UTF_8))
                                 restoredConfig = parseConfigJsonFromBackup(context, bytes)
+
+                                // Handle MCP servers (BAT-514 architecture)
+                                if (json.has("mcpServers")) {
+                                    val arr = json.getJSONArray("mcpServers")
+                                    val mcpList = mutableListOf<McpServer>()
+                                    for (i in 0 until arr.length()) {
+                                        val s = arr.getJSONObject(i)
+                                        mcpList.add(McpServer(
+                                            id = s.getString("id"),
+                                            name = s.getString("name"),
+                                            url = s.getString("url"),
+                                            enabled = s.optBoolean("enabled", true),
+                                            rateLimit = s.optInt("rateLimit", 10)
+                                        ))
+                                    }
+                                    McpServersStore.write(mcpList)
+                                    for (i in 0 until arr.length()) {
+                                        val s = arr.getJSONObject(i)
+                                        val id = s.getString("id")
+                                        val token = s.optString("authToken", "")
+                                        if (token.isNotBlank()) {
+                                            McpServersStore.setAuthToken(context, id, token)
+                                        }
+                                    }
+                                }
                             }
                             "env.json" -> {
                                 val bytes = zip.readBytes()
