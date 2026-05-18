@@ -3162,23 +3162,18 @@ object ConfigManager {
                 ZipOutputStream(outputStream).use { zip ->
                     val config = loadConfig(context)
                     if (config != null) {
-                        val configJson = buildConfigJsonForExport(context, config)
-                        zip.putNextEntry(ZipEntry("config.json"))
-                        zip.write(configJson.toString(2).toByteArray(Charsets.UTF_8))
-                        zip.closeEntry()
-                    }
-                    val envVars = loadEnvVars(context)
-                    if (envVars.isNotEmpty()) {
-                        val envJson = JSONArray().apply {
+                        val fullConfigJson = buildConfigJsonForExport(context, config)
+                        val envVars = loadEnvVars(context)
+                        if (envVars.isNotEmpty()) {
+                            val envObj = JSONObject()
                             for (v in envVars) {
-                                put(JSONObject().apply {
-                                    put("name", v.name)
-                                    put("value", v.value)
-                                })
+                                envObj.put(v.name, v.value)
                             }
+                            fullConfigJson.put("envVars", envObj)
                         }
-                        zip.putNextEntry(ZipEntry("env.json"))
-                        zip.write(envJson.toString(2).toByteArray(Charsets.UTF_8))
+                        
+                        zip.putNextEntry(ZipEntry("config_backup.json"))
+                        zip.write(fullConfigJson.toString(2).toByteArray(Charsets.UTF_8))
                         zip.closeEntry()
                     }
                     addAllowedFilesToZip(zip, workspaceDir, workspaceDir)
@@ -3267,24 +3262,24 @@ object ConfigManager {
         var restoredConfig: AppConfig? = null
 
         return try {
-            // Pre-check: must contain config.json
-            var hasConfig = false
-            var hasEnv = false
+            // Pre-check: must contain config_backup.json or config.json
+            var hasUnifiedConfig = false
+            var hasLegacyConfig = false
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 ZipInputStream(inputStream).use { zip ->
                     var entry = zip.nextEntry
                     while (entry != null) {
                         val name = entry.name
-                        if (name == "config.json") hasConfig = true
-                        if (name == "env.json") hasEnv = true
+                        if (name == "config_backup.json") hasUnifiedConfig = true
+                        if (name == "config.json") hasLegacyConfig = true
                         zip.closeEntry()
                         entry = zip.nextEntry
-                        if (hasConfig && hasEnv) break
+                        if (hasUnifiedConfig) break
                     }
                 }
             }
-            if (!hasConfig) {
-                Log.e(TAG, "Backup does not contain config.json — not a valid full backup")
+            if (!hasUnifiedConfig && !hasLegacyConfig) {
+                Log.e(TAG, "Backup does not contain config_backup.json or config.json — not a valid full backup")
                 return false
             }
 
@@ -3295,10 +3290,20 @@ object ConfigManager {
                     while (entry != null) {
                         val entryName = entry.name
                         when (entryName) {
-                            "config.json" -> {
+                            "config_backup.json", "config.json" -> {
                                 val bytes = zip.readBytes()
                                 val json = JSONObject(String(bytes, Charsets.UTF_8))
                                 restoredConfig = parseConfigJsonFromBackup(context, bytes)
+
+                                // Handle env vars inside unified config
+                                if (json.has("envVars")) {
+                                    val envObj = json.getJSONObject("envVars")
+                                    val keys = envObj.keys()
+                                    while (keys.hasNext()) {
+                                        val key = keys.next()
+                                        restoredEnvVars.add(EnvVar(key, envObj.getString(key)))
+                                    }
+                                }
 
                                 // Handle MCP servers (BAT-514 architecture)
                                 if (json.has("mcpServers")) {
