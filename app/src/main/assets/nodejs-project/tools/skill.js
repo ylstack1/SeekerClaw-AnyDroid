@@ -229,7 +229,10 @@ const handlers = {
 
     async skill_marketplace_search(input) {
         const { query } = input;
-        const url = `https://clawhub.ai/api/v1/skills?q=${encodeURIComponent(query)}`;
+        const baseUrl = 'https://clawhub.ai/api/v1';
+        const url = (!query || query.trim() === '')
+            ? `${baseUrl}/skills?limit=50&sort=createdAt`
+            : `${baseUrl}/search?q=${encodeURIComponent(query)}`;
         
         try {
             const res = await webFetch(url, { timeout: 15000 });
@@ -237,18 +240,44 @@ const handlers = {
                 return { error: `Marketplace search failed: HTTP ${res.status}` };
             }
             
-            const data = res.data || {};
-            const skills = Array.isArray(data.items) ? data.items : [];
+            const rawData = res.data;
+            
+            // Handle various response shapes:
+            // 1. Direct array: [ {...}, {...} ]
+            // 2. Wrapped with "items": { items: [...] }
+            // 3. Wrapped with "skills": { skills: [...] }
+            // 4. Wrapped with "data": { data: [...] } or { data: { items: [...] } }
+            let skills = [];
+            if (Array.isArray(rawData)) {
+                skills = rawData;
+            } else if (rawData && typeof rawData === 'object') {
+                if (rawData.items) {
+                    skills = Array.isArray(rawData.items) ? rawData.items : [];
+                } else if (rawData.skills) {
+                    skills = Array.isArray(rawData.skills) ? rawData.skills : [];
+                } else if (rawData.data) {
+                    const inner = rawData.data;
+                    if (Array.isArray(inner)) {
+                        skills = inner;
+                    } else if (typeof inner === 'object') {
+                        skills = inner.items || inner.skills || [];
+                    }
+                }
+            }
+            
             return {
                 count: skills.length,
                 skills: skills.map(s => ({
-                    id: s.slug,
-                    name: s.displayName,
-                    description: s.summary,
-                    author: s.author,
-                    version: s.latestVersion?.version || "1.0.0",
-                    downloadUrl: s.downloadUrl,
-                    emoji: s.emoji
+                    id: s.slug || s.id || '',
+                    name: s.displayName || s.name || '',
+                    description: s.summary || s.description || '',
+                    author: typeof s.author === 'object' ? s.author.name : s.author || '',
+                    version: s.latestVersion?.version || s.version || "1.0.0",
+                    downloadUrl: s.download?.url || s.downloadUrl || s.download || '',
+                    emoji: s.emoji || '🧩',
+                    imageUrl: typeof s.image === 'object' ? s.image.url : s.image || '',
+                    triggers: Array.isArray(s.triggers) ? s.triggers : [],
+                    requiresEnv: Array.isArray(s.requiresEnv) ? s.requiresEnv : [],
                 }))
             };
         } catch (e) {

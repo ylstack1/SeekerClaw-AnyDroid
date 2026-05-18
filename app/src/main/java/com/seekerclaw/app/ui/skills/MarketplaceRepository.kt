@@ -13,14 +13,30 @@ object MarketplaceRepository {
 
     suspend fun searchSkills(query: String): Result<List<MarketplaceSkill>> = withContext(Dispatchers.IO) {
         runCatching {
-            val encodedQuery = URLEncoder.encode(query, "UTF-8")
-            val url = "$BASE_URL/skills?q=$encodedQuery"
+            val url = if (query.isBlank()) {
+                "$BASE_URL/skills?limit=50&sort=createdAt"
+            } else {
+                val encodedQuery = URLEncoder.encode(query, "UTF-8")
+                "$BASE_URL/search?q=$encodedQuery"
+            }
             val (status, body) = httpGet(url)
             if (status !in 200..299) {
                 error("Marketplace search failed ($status)")
             }
             val responseObj = JSONObject(body)
-            val arr = responseObj.optJSONArray("items") ?: JSONArray()
+            // Handle both direct array responses and wrapped objects with "items" or "skills" keys
+            val arr = when {
+                responseObj.has("items") -> responseObj.getJSONArray("items")
+                responseObj.has("skills") -> responseObj.getJSONArray("skills")
+                responseObj.has("data") -> {
+                    val data = responseObj.get("data")
+                    if (data is JSONArray) data
+                    else if (data is JSONObject && data.has("items")) data.getJSONArray("items")
+                    else if (data is JSONObject && data.has("skills")) data.getJSONArray("skills")
+                    else JSONArray()
+                }
+                else -> JSONArray()
+            }
             val skills = mutableListOf<MarketplaceSkill>()
             for (i in 0 until arr.length()) {
                 val obj = arr.getJSONObject(i)
@@ -41,21 +57,53 @@ object MarketplaceRepository {
     }
 
     private fun parseSkill(obj: JSONObject): MarketplaceSkill {
+        // ClawHub API v2 fields — nested structure
+        val name = obj.optString("name", obj.optString("displayName", ""))
+        val description = obj.optString("description", obj.optString("summary", ""))
+        val emoji = obj.optString("emoji", "🧩")
+        // author may be string or nested object {"name": "..."}
+        val authorRaw = obj.opt("author")
+        val author = when {
+            authorRaw is JSONObject -> authorRaw.optString("name", "")
+            authorRaw is String -> authorRaw
+            else -> ""
+        }
+        // image may be string or nested object {"url": "..."}
+        val imageRaw = obj.opt("image")
+        val imageUrl = when {
+            imageRaw is JSONObject -> imageRaw.optString("url", "")
+            imageRaw is String -> imageRaw
+            else -> ""
+        }
+        // download may be string or nested object {"url": "..."}
+        val downloadRaw = obj.opt("download")
+        val downloadUrl = when {
+            downloadRaw is JSONObject -> downloadRaw.optString("url", "")
+            downloadRaw is String -> downloadRaw
+            else -> ""
+        }
+        // version from latestVersion object or direct version field
+        val version = obj.optJSONObject("latestVersion")?.optString("version")
+            ?: obj.optString("version", "1.0.0")
+        // triggers array
+        val triggers = obj.optJSONArray("triggers")?.let { arr ->
+            List(arr.length()) { arr.getString(it) }
+        } ?: emptyList()
+        // requiresEnv array
+        val requiresEnv = obj.optJSONArray("requiresEnv")?.let { arr ->
+            List(arr.length()) { arr.getString(it) }
+        } ?: emptyList()
         return MarketplaceSkill(
             id = obj.getString("slug"),
-            name = obj.getString("displayName"),
-            description = obj.optString("summary", ""),
-            version = obj.optJSONObject("latestVersion")?.optString("version", "1.0.0") ?: "1.0.0",
-            emoji = obj.optString("emoji", "🧩"),
-            author = obj.optString("author", ""),
-            imageUrl = obj.optString("imageUrl", ""),
-            downloadUrl = obj.optString("downloadUrl", ""),
-            triggers = obj.optJSONArray("triggers")?.let { arr ->
-                List(arr.length()) { arr.getString(it) }
-            } ?: emptyList(),
-            requiresEnv = obj.optJSONArray("requiresEnv")?.let { arr ->
-                List(arr.length()) { arr.getString(it) }
-            } ?: emptyList(),
+            name = name,
+            description = description,
+            version = version,
+            emoji = emoji,
+            author = author,
+            imageUrl = imageUrl,
+            downloadUrl = downloadUrl,
+            triggers = triggers,
+            requiresEnv = requiresEnv,
         )
     }
 
