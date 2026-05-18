@@ -9,7 +9,7 @@ import java.net.URL
 import java.net.URLEncoder
 
 object MarketplaceRepository {
-    private const val BASE_URL = "https://clawhub.xyz/api/v1"
+    private const val BASE_URL = "https://api.clawhub.ai/v1"
 
     suspend fun searchSkills(query: String): Result<List<MarketplaceSkill>> = withContext(Dispatchers.IO) {
         runCatching {
@@ -20,7 +20,19 @@ object MarketplaceRepository {
                 error("Marketplace search failed ($status)")
             }
             val responseObj = JSONObject(body)
-            val arr = responseObj.optJSONArray("items") ?: JSONArray()
+            // Handle both direct array responses and wrapped objects with "items" or "skills" keys
+            val arr = when {
+                responseObj.has("items") -> responseObj.getJSONArray("items")
+                responseObj.has("skills") -> responseObj.getJSONArray("skills")
+                responseObj.has("data") -> {
+                    val data = responseObj.get("data")
+                    if (data is JSONArray) data
+                    else if (data is JSONObject && data.has("items")) data.getJSONArray("items")
+                    else if (data is JSONObject && data.has("skills")) data.getJSONArray("skills")
+                    else JSONArray()
+                }
+                else -> JSONArray()
+            }
             val skills = mutableListOf<MarketplaceSkill>()
             for (i in 0 until arr.length()) {
                 val obj = arr.getJSONObject(i)
